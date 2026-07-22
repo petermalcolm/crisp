@@ -1,0 +1,15 @@
+version-controlled-data/
+
+# Python
+backend/.venv/
+backend/__pycache__/
+**/__pycache__/
+*.pyc
+.pytest_cache/
+
+# Node
+frontend/node_modules/
+frontend/dist/
+
+# Claude Code local settings (personal permission allowlist, not shared)
+.claude/settings.local.json
