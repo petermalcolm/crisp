@@ -4,6 +4,7 @@ export interface Component {
   estimated_cost: number;
   initial_year: number;
   expected_life_years: number;
+  category_code: string | null;
   notes: string | null;
 }
 

@@ -4,7 +4,7 @@ from pathlib import Path
 import pandas as pd
 
 from app.core.calc.costs import Component
-from app.models import SurpriseContribution, YearParameterRow
+from app.models import Category, SurpriseContribution, YearParameterRow
 
 COMPONENTS_COLUMNS = [
     "id",
@@ -12,8 +12,10 @@ COMPONENTS_COLUMNS = [
     "estimated_cost",
     "initial_year",
     "expected_life_years",
+    "category_code",
     "notes",
 ]
+CATEGORIES_COLUMNS = ["code", "name"]
 YEAR_PARAMETERS_COLUMNS = [
     "year",
     "num_contributors",
@@ -43,6 +45,10 @@ def _surprise_contributions_path(repo_path: Path) -> Path:
     return repo_path / "surprise_contributions.csv"
 
 
+def _categories_path(repo_path: Path) -> Path:
+    return repo_path / "categories.csv"
+
+
 def _opt_float(value) -> float | None:
     return None if pd.isna(value) else float(value)
 
@@ -64,6 +70,7 @@ def read_components(repo_path: Path) -> list[Component]:
             estimated_cost=float(row["estimated_cost"]),
             initial_year=int(row["initial_year"]),
             expected_life_years=int(row["expected_life_years"]),
+            category_code=_opt_str(row.get("category_code")),
             notes=_opt_str(row.get("notes")),
         )
         for _, row in df.iterrows()
@@ -80,6 +87,7 @@ def write_components(repo_path: Path, components: list[Component]) -> None:
                 "estimated_cost": f"{c.estimated_cost:.2f}",
                 "initial_year": c.initial_year,
                 "expected_life_years": c.expected_life_years,
+                "category_code": c.category_code or "",
                 "notes": c.notes or "",
             }
             for c in ordered
@@ -161,3 +169,23 @@ def write_surprise_contributions(
         columns=SURPRISE_CONTRIBUTIONS_COLUMNS,
     )
     df.to_csv(_surprise_contributions_path(repo_path), index=False)
+
+
+def read_categories(repo_path: Path) -> list[Category]:
+    path = _categories_path(repo_path)
+    if not path.exists():
+        return []
+    df = pd.read_csv(path)
+    return [
+        Category(code=str(row["code"]), name=str(row["name"]))
+        for _, row in df.iterrows()
+    ]
+
+
+def write_categories(repo_path: Path, categories: list[Category]) -> None:
+    ordered = sorted(categories, key=lambda c: c.code)
+    df = pd.DataFrame(
+        [{"code": c.code, "name": c.name} for c in ordered],
+        columns=CATEGORIES_COLUMNS,
+    )
+    df.to_csv(_categories_path(repo_path), index=False)

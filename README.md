@@ -71,6 +71,46 @@ processes are already registered in `.claude/launch.json` as `frontend` and
   against the theoretical FFB target — until one is set, the FFB view shows
   targets only.
 
+## Bulk-importing components from a spreadsheet
+
+For a one-time load of many components (e.g. migrating an existing reserve
+study), use `backend/scripts/import_components.py` instead of adding them
+one at a time through the UI.
+
+1. Prepare a staging CSV with these columns (any others are ignored, and
+   `category_code`/`notes` may be blank or omitted):
+
+   ```
+   name,estimated_cost,initial_year,expected_life_years,category_code,notes
+   ```
+
+   Don't include an `id` column — the script generates a real UUID per row.
+   Valid `category_code` values are whatever's in `version-controlled-data/categories.csv`
+   (currently `CH`, `IN`, `OS`, `OB`, `PO` — see that file to add/rename categories).
+
+2. Create a forecast branch to import onto (imports are blocked on `main`,
+   same as the UI):
+
+   ```bash
+   cd version-controlled-data && git checkout -b import-components
+   ```
+
+3. Run the script:
+
+   ```bash
+   cd backend
+   .venv/bin/python scripts/import_components.py /path/to/staged.csv
+   ```
+
+   It validates every row before writing anything — cost/life must be
+   positive numbers, category codes must be known — and reports every bad
+   row (with its line number) at once rather than stopping at the first.
+   On success it commits the import as a single commit on your forecast
+   branch.
+
+4. Review (`git -C version-controlled-data show --stat HEAD`), then merge
+   permanently via the app's "Merge to main" button.
+
 ## Running tests
 
 ```bash

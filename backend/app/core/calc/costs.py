@@ -8,6 +8,7 @@ class Component:
     estimated_cost: float
     initial_year: int
     expected_life_years: int
+    category_code: str | None = None
     notes: str | None = None
 
 

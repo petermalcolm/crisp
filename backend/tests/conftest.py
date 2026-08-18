@@ -23,7 +23,7 @@ def bare_git_repo(tmp_path) -> Path:
     _git(tmp_path, "config", "user.name", "Test")
 
     (tmp_path / "components.csv").write_text(
-        "id,name,estimated_cost,initial_year,expected_life_years,notes\n"
+        "id,name,estimated_cost,initial_year,expected_life_years,category_code,notes\n"
     )
     (tmp_path / "year_parameters.csv").write_text(
         "year,num_contributors,inflation_rate,interest_rate,"
@@ -32,6 +32,14 @@ def bare_git_repo(tmp_path) -> Path:
     )
     (tmp_path / "surprise_contributions.csv").write_text(
         "id,year,amount,description\n"
+    )
+    (tmp_path / "categories.csv").write_text(
+        "code,name\n"
+        "CH,Common House\n"
+        "IN,Infrastructure\n"
+        "OS,Other Structures\n"
+        "OB,Outbuildings\n"
+        "PO,Pool\n"
     )
 
     _git(tmp_path, "add", "-A")

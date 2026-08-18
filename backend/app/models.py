@@ -19,3 +19,9 @@ class SurpriseContribution:
     year: int
     amount: float
     description: str | None = None
+
+
+@dataclass(frozen=True)
+class Category:
+    code: str
+    name: str

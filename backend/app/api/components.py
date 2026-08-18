@@ -15,6 +15,7 @@ class ComponentIn(BaseModel):
     estimated_cost: float = Field(gt=0)
     initial_year: int
     expected_life_years: int = Field(gt=0)
+    category_code: str | None = None
     notes: str | None = None
 
 
@@ -29,8 +30,20 @@ def _to_out(component: Component) -> ComponentOut:
         estimated_cost=component.estimated_cost,
         initial_year=component.initial_year,
         expected_life_years=component.expected_life_years,
+        category_code=component.category_code,
         notes=component.notes,
     )
+
+
+def _validate_category_code(category_code: str | None) -> None:
+    if category_code is None:
+        return
+    known_codes = {c.code for c in csv_store.read_categories(settings.data_repo_path)}
+    if category_code not in known_codes:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unknown category_code '{category_code}'. See GET /api/categories.",
+        )
 
 
 @router.get("", response_model=list[ComponentOut])
@@ -46,6 +59,7 @@ def list_components() -> list[ComponentOut]:
     dependencies=[Depends(require_forecast_branch)],
 )
 def create_component(payload: ComponentIn) -> ComponentOut:
+    _validate_category_code(payload.category_code)
     components = csv_store.read_components(settings.data_repo_path)
     new_component = Component(
         id=csv_store.new_id(),
@@ -53,6 +67,7 @@ def create_component(payload: ComponentIn) -> ComponentOut:
         estimated_cost=payload.estimated_cost,
         initial_year=payload.initial_year,
         expected_life_years=payload.expected_life_years,
+        category_code=payload.category_code,
         notes=payload.notes,
     )
     components.append(new_component)
@@ -67,6 +82,7 @@ def create_component(payload: ComponentIn) -> ComponentOut:
     dependencies=[Depends(require_forecast_branch)],
 )
 def update_component(component_id: str, payload: ComponentIn) -> ComponentOut:
+    _validate_category_code(payload.category_code)
     components = csv_store.read_components(settings.data_repo_path)
     index = next((i for i, c in enumerate(components) if c.id == component_id), None)
     if index is None:
@@ -78,6 +94,7 @@ def update_component(component_id: str, payload: ComponentIn) -> ComponentOut:
         estimated_cost=payload.estimated_cost,
         initial_year=payload.initial_year,
         expected_life_years=payload.expected_life_years,
+        category_code=payload.category_code,
         notes=payload.notes,
     )
     components[index] = updated

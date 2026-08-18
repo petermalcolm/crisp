@@ -2,12 +2,12 @@ from pathlib import Path
 
 from app.core.calc.costs import Component
 from app.data import csv_store
-from app.models import SurpriseContribution, YearParameterRow
+from app.models import Category, SurpriseContribution, YearParameterRow
 
 
 def _init_repo(tmp_path: Path) -> Path:
     (tmp_path / "components.csv").write_text(
-        "id,name,estimated_cost,initial_year,expected_life_years,notes\n"
+        "id,name,estimated_cost,initial_year,expected_life_years,category_code,notes\n"
     )
     (tmp_path / "year_parameters.csv").write_text(
         "year,num_contributors,inflation_rate,interest_rate,"
@@ -27,7 +27,8 @@ def test_components_round_trip_sorted_by_id(tmp_path):
         ),
         Component(
             id="a-pool", name="Pool", estimated_cost=20_000.0,
-            initial_year=2028, expected_life_years=10, notes="resurface",
+            initial_year=2028, expected_life_years=10,
+            category_code="PO", notes="resurface",
         ),
     ]
     csv_store.write_components(repo, components)
@@ -35,8 +36,29 @@ def test_components_round_trip_sorted_by_id(tmp_path):
 
     assert [c.id for c in loaded] == ["a-pool", "b-roof"]
     assert loaded[0].notes == "resurface"
+    assert loaded[0].category_code == "PO"
     assert loaded[1].name == "Roof"
     assert loaded[1].estimated_cost == 100_000.0
+    assert loaded[1].category_code is None
+
+
+def test_categories_round_trip_sorted_by_code(tmp_path):
+    repo = _init_repo(tmp_path)
+    (repo / "categories.csv").write_text("code,name\n")
+    categories = [
+        Category(code="PO", name="Pool"),
+        Category(code="CH", name="Common House"),
+    ]
+    csv_store.write_categories(repo, categories)
+    loaded = csv_store.read_categories(repo)
+
+    assert [c.code for c in loaded] == ["CH", "PO"]
+    assert loaded[0].name == "Common House"
+
+
+def test_read_categories_missing_file_returns_empty_list(tmp_path):
+    repo = _init_repo(tmp_path)
+    assert csv_store.read_categories(repo) == []
 
 
 def test_year_parameters_round_trip_preserves_blanks(tmp_path):
