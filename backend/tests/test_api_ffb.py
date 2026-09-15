@@ -33,10 +33,12 @@ def test_ffb_projection_anchors_and_rolls_forward(client):
     assert rows[2025]["actual_balance"] is None  # before the anchor year
     assert rows[2026]["actual_balance"] == 10_000.0
     assert rows[2026]["ffb_target"] == 0.0  # age 0 at replacement year
+    assert rows[2026]["total_cost"] == 100_000.0  # roof replaced this year
     assert rows[2026]["percent_funded"] is None  # target is 0, div-by-zero guarded
 
     # 2027: balance = 10000*1.02 + 5000 (contribution, no cost that year) = 15200
     assert round(rows[2027]["actual_balance"], 2) == 15_200.0
+    assert rows[2027]["total_cost"] == 0.0
     assert rows[2027]["is_estimate"] is True
 
 

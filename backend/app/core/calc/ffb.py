@@ -8,6 +8,7 @@ class YearFFBRow:
     year: int
     is_estimate: bool
     ffb_target: float
+    total_cost: float
     actual_balance: float | None
     percent_funded: float | None
 
@@ -77,6 +78,7 @@ def project_ffb(
                 year=year,
                 is_estimate=year > base_year,
                 ffb_target=target,
+                total_cost=costs_by_year.get(year, 0.0),
                 actual_balance=balance,
                 percent_funded=percent_funded,
             )

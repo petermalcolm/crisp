@@ -24,12 +24,14 @@ def test_ffb_target_and_rollforward_balance():
     y2026 = by_year[2026]
     assert y2026.is_estimate is False
     assert y2026.ffb_target == 0.0  # age 0 in replacement year
+    assert y2026.total_cost == 100_000.0
     assert y2026.actual_balance == 10_000.0
     assert y2026.percent_funded is None  # target is 0, guarded against div-by-zero
 
     y2027 = by_year[2027]
     assert y2027.is_estimate is True
     assert round(y2027.ffb_target, 2) == round(100_000 / 15, 2)
+    assert y2027.total_cost == 0.0
     assert round(y2027.actual_balance, 2) == 15_200.0
     assert round(y2027.percent_funded, 4) == round(15_200.0 / (100_000 / 15), 4)
 

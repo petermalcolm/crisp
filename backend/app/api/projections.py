@@ -34,6 +34,7 @@ class YearFFBRowOut(BaseModel):
     year: int
     is_estimate: bool
     ffb_target: float
+    total_cost: float
     actual_balance: float | None
     percent_funded: float | None
 
@@ -125,6 +126,7 @@ def get_ffb_projection(
             year=row.year,
             is_estimate=row.is_estimate,
             ffb_target=row.ffb_target,
+            total_cost=row.total_cost,
             actual_balance=row.actual_balance,
             percent_funded=row.percent_funded,
         )

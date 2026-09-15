@@ -55,6 +55,9 @@ export function FFBPage() {
                 <th className="px-3 py-2 font-medium">Year</th>
                 <th className="px-3 py-2 font-medium"></th>
                 <th className="px-3 py-2 font-medium text-right">
+                  Total Cost
+                </th>
+                <th className="px-3 py-2 font-medium text-right">
                   FFB Target
                 </th>
                 <th className="px-3 py-2 font-medium text-right">
@@ -83,6 +86,9 @@ function FFBRow({ row }: { row: YearFFBRow }) {
       <td className="px-3 py-2 font-medium">{row.year}</td>
       <td className="px-3 py-2">
         <EstimateBadge isEstimate={row.is_estimate} />
+      </td>
+      <td className="px-3 py-2 text-right">
+        {currencyFormatter.format(row.total_cost)}
       </td>
       <td className="px-3 py-2 text-right">
         {currencyFormatter.format(row.ffb_target)}
