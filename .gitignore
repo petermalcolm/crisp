@@ -2,6 +2,7 @@ version-controlled-data/
 
 # Python
 backend/.venv/
+backend/.idea/
 backend/__pycache__/
 **/__pycache__/
 *.pyc
