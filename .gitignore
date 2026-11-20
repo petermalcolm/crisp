@@ -14,3 +14,7 @@ frontend/dist/
 
 # Claude Code local settings (personal permission allowlist, not shared)
 .claude/settings.local.json
+
+# Background documents for Claude Code
+background-docs/
+
