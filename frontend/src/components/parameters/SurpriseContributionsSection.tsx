@@ -38,7 +38,7 @@ export function SurpriseContributionsSection() {
   }
 
   return (
-    <section className="space-y-3">
+    <section id="surprise-contributions" className="scroll-mt-4 space-y-3">
       <h2 className="text-lg font-semibold">Surprise Contributions</h2>
       <form
         onSubmit={handleSubmit}

@@ -38,6 +38,19 @@ export function ParametersPage() {
         </p>
       )}
 
+      <a
+        href="#surprise-contributions"
+        onClick={(e) => {
+          e.preventDefault();
+          document
+            .getElementById("surprise-contributions")
+            ?.scrollIntoView({ behavior: "smooth" });
+        }}
+        className="inline-block text-sm text-sky-600 hover:underline dark:text-sky-400"
+      >
+        ↓ Add a Surprise Contribution
+      </a>
+
       {data && (
         <div className="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
           <table className="w-full min-w-[960px] text-left text-sm">
