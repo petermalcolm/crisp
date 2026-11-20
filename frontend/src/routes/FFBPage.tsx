@@ -58,10 +58,10 @@ export function FFBPage() {
                   Total Cost
                 </th>
                 <th className="px-3 py-2 font-medium text-right">
-                  FFB Target
+                  FFB (Jan 1)
                 </th>
                 <th className="px-3 py-2 font-medium text-right">
-                  Actual Balance
+                  Balance (Jan 1)
                 </th>
                 <th className="px-3 py-2 font-medium text-right">
                   % Funded

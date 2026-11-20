@@ -55,19 +55,36 @@ def is_scheduled_occurrence(component: Component, year: int) -> bool:
     )
 
 
-def component_age_in_year(
+def component_age_at_start_of_year(
     component: Component, year: int, actual_years: tuple[int, ...] | list[int] = ()
-) -> int | None:
-    """Age of the component in the given year, counted from its most recent
-    replacement: either the latest scheduled occurrence or the latest recorded
-    actual, whichever is later. None if neither has happened yet."""
-    replacements = [y for y in actual_years if y <= year]
-    if year >= component.initial_year:
-        offset = (year - component.initial_year) % component.expected_life_years
-        replacements.append(year - offset)
-    if not replacements:
-        return None
-    return year - max(replacements)
+) -> int:
+    """Effective age of a component at the *start* of the given year, in years.
+
+    This is the convention reserve studies (and lenders) use for the Fully
+    Funded Balance:
+
+    * If the component has already been replaced (on schedule, or by a
+      recorded actual) before this year, age is the time since the latest
+      such replacement. A replacement happening *during* ``year`` is not yet
+      counted, so a component due this year is at its full useful life.
+    * If it has not been replaced yet, age is useful life minus remaining
+      life, clamped to [0, useful life]: a component due in 3 years with a
+      20-year life is already 17 years old. An actual recorded for a later
+      year counts as the upcoming replacement (recording an actual pushes
+      ``initial_year`` out by one life, which would otherwise erase the wear
+      accrued before it).
+    """
+    life = component.expected_life_years
+    initial = component.initial_year
+
+    prior = [y for y in actual_years if y <= year - 1]
+    if initial <= year - 1:
+        prior.append(initial + ((year - 1 - initial) // life) * life)
+    if prior:
+        return year - max(prior)
+
+    due = min([initial, *[y for y in actual_years if y >= year]])
+    return max(0, min(life, life - (due - year)))
 
 
 def inflate_cost(

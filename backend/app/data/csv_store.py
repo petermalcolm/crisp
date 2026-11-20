@@ -28,6 +28,7 @@ YEAR_PARAMETERS_COLUMNS = [
     "notes",
 ]
 SURPRISE_CONTRIBUTIONS_COLUMNS = ["id", "year", "amount", "description"]
+STUDY_SETTINGS_COLUMNS = ["key", "value"]
 
 
 def new_id() -> str:
@@ -52,6 +53,10 @@ def _categories_path(repo_path: Path) -> Path:
 
 def _actual_costs_path(repo_path: Path) -> Path:
     return repo_path / "actual_costs.csv"
+
+
+def _study_settings_path(repo_path: Path) -> Path:
+    return repo_path / "study_settings.csv"
 
 
 def _opt_float(value) -> float | None:
@@ -227,3 +232,21 @@ def write_actual_costs(repo_path: Path, rows: list[ActualCost]) -> None:
         columns=ACTUAL_COSTS_COLUMNS,
     )
     df.to_csv(_actual_costs_path(repo_path), index=False)
+
+
+def read_study_settings(repo_path: Path) -> dict[str, str]:
+    """Free-form key/value settings about the study itself (e.g.
+    ``cost_base_year``). Missing file means no settings."""
+    path = _study_settings_path(repo_path)
+    if not path.exists():
+        return {}
+    df = pd.read_csv(path, dtype=str, keep_default_na=False)
+    return {str(row["key"]): str(row["value"]) for _, row in df.iterrows()}
+
+
+def write_study_settings(repo_path: Path, settings_map: dict[str, str]) -> None:
+    df = pd.DataFrame(
+        [{"key": k, "value": v} for k, v in sorted(settings_map.items())],
+        columns=STUDY_SETTINGS_COLUMNS,
+    )
+    df.to_csv(_study_settings_path(repo_path), index=False)

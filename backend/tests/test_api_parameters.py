@@ -104,3 +104,23 @@ def test_surprise_contribution_crud(client):
 def test_delete_missing_surprise_contribution_404s(client):
     resp = client.delete("/api/surprise-contributions/does-not-exist")
     assert resp.status_code == 404
+
+
+def test_study_settings_cost_base_year_roundtrip_and_fallback(client):
+    client.patch("/api/parameters/2024", json={"current_reserve_balance": 1000.0})
+
+    body = client.get("/api/study-settings").json()
+    assert body == {
+        "cost_base_year": None,
+        "effective_cost_base_year": 2024,  # falls back to the balance year
+        "balance_year": 2024,
+    }
+
+    put = client.put("/api/study-settings", json={"cost_base_year": 2023})
+    assert put.status_code == 200
+    assert put.json()["cost_base_year"] == 2023
+    assert put.json()["effective_cost_base_year"] == 2023
+
+    cleared = client.put("/api/study-settings", json={"cost_base_year": None})
+    assert cleared.json()["cost_base_year"] is None
+    assert cleared.json()["effective_cost_base_year"] == 2024

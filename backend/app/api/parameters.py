@@ -5,7 +5,12 @@ from pydantic import BaseModel
 
 from app.api.deps import require_forecast_branch
 from app.config import settings
-from app.core.calc.parameters import resolve_horizon, resolve_effective_base_year
+from app.core.calc.parameters import (
+    resolve_base_year,
+    resolve_cost_base_year,
+    resolve_effective_base_year,
+    resolve_horizon,
+)
 from app.core.calc.sticky import resolve_sticky_series
 from app.data import csv_store
 from app.models import SurpriseContribution, YearParameterRow
@@ -198,3 +203,46 @@ def delete_surprise_contribution(contribution_id: str) -> None:
         raise HTTPException(status_code=404, detail="Surprise contribution not found")
     csv_store.write_surprise_contributions(settings.data_repo_path, remaining)
     autosave_service.notify_change()
+
+
+class StudySettingsOut(BaseModel):
+    cost_base_year: int | None  # explicit setting, None if unset
+    effective_cost_base_year: int  # what the calculations actually use
+    balance_year: int | None  # year the reserve balance is stated at the start of
+
+
+class StudySettingsPatch(BaseModel):
+    cost_base_year: int | None = None
+
+
+def _study_settings_out() -> StudySettingsOut:
+    rows = csv_store.read_year_parameters(settings.data_repo_path)
+    stored = csv_store.read_study_settings(settings.data_repo_path)
+    explicit = stored.get("cost_base_year")
+    balance_year, _ = resolve_base_year(rows)
+    return StudySettingsOut(
+        cost_base_year=int(explicit) if explicit not in (None, "") else None,
+        effective_cost_base_year=resolve_cost_base_year(rows, stored),
+        balance_year=balance_year,
+    )
+
+
+@router.get("/study-settings", response_model=StudySettingsOut)
+def get_study_settings() -> StudySettingsOut:
+    return _study_settings_out()
+
+
+@router.put(
+    "/study-settings",
+    response_model=StudySettingsOut,
+    dependencies=[Depends(require_forecast_branch)],
+)
+def put_study_settings(payload: StudySettingsPatch) -> StudySettingsOut:
+    stored = csv_store.read_study_settings(settings.data_repo_path)
+    if payload.cost_base_year is None:
+        stored.pop("cost_base_year", None)
+    else:
+        stored["cost_base_year"] = str(payload.cost_base_year)
+    csv_store.write_study_settings(settings.data_repo_path, stored)
+    autosave_service.notify_change()
+    return _study_settings_out()

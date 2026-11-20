@@ -64,6 +64,25 @@ def resolve_effective_base_year(rows: list[YearParameterRow]) -> int:
     return base_year if base_year is not None else date.today().year
 
 
+def resolve_cost_base_year(
+    rows: list[YearParameterRow], study_settings: dict[str, str] | None = None
+) -> int:
+    """The year component ``estimated_cost`` values are denominated in.
+
+    Explicit ``cost_base_year`` study setting wins. Without one it falls back
+    to the reserve-balance anchor year (or today's year), which is the old
+    behaviour; set the setting explicitly before re-anchoring the balance to a
+    newer year, or the estimates would silently be treated as newer dollars.
+    """
+    raw = (study_settings or {}).get("cost_base_year")
+    if raw not in (None, ""):
+        try:
+            return int(raw)
+        except ValueError:
+            pass
+    return resolve_effective_base_year(rows)
+
+
 def resolve_horizon(
     base_year: int, start_year: int | None, end_year: int | None
 ) -> tuple[int, int]:

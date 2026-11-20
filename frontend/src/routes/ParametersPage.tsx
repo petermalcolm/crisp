@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useIsMainBranch } from "../api/branches";
 import { usePatchYearParameters, useYearParameters } from "../api/parameters";
+import { CostBaseYearSection } from "../components/parameters/CostBaseYearSection";
 import { SurpriseContributionsSection } from "../components/parameters/SurpriseContributionsSection";
 import { ReadOnlyBanner } from "../components/shared/ReadOnlyBanner";
 import { StickyValueCell } from "../components/shared/StickyValueCell";
@@ -48,7 +49,7 @@ export function ParametersPage() {
                 <th className="px-3 py-2 font-medium">Interest</th>
                 <th className="px-3 py-2 font-medium">YoY Contribution Δ</th>
                 <th className="px-3 py-2 font-medium">Total Contribution</th>
-                <th className="px-3 py-2 font-medium">Reserve Balance</th>
+                <th className="px-3 py-2 font-medium">Reserve Balance (Jan 1)</th>
                 <th className="px-3 py-2 font-medium">Notes</th>
               </tr>
             </thead>
@@ -65,6 +66,8 @@ export function ParametersPage() {
           </table>
         </div>
       )}
+
+      <CostBaseYearSection />
 
       <SurpriseContributionsSection />
     </div>

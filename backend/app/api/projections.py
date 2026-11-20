@@ -8,6 +8,7 @@ from app.core.calc.parameters import (
     aggregate_surprise_by_year,
     resolve_base_year,
     resolve_contribution_series,
+    resolve_cost_base_year,
     resolve_effective_base_year,
     resolve_horizon,
     resolve_rate_series,
@@ -49,11 +50,16 @@ def get_costs_projection(
     components = csv_store.read_components(settings.data_repo_path)
     year_parameters = csv_store.read_year_parameters(settings.data_repo_path)
 
-    base_year = resolve_effective_base_year(year_parameters)
-    resolved_start, resolved_end = resolve_horizon(base_year, start_year, end_year)
+    as_of_year = resolve_effective_base_year(year_parameters)
+    base_year = resolve_cost_base_year(
+        year_parameters, csv_store.read_study_settings(settings.data_repo_path)
+    )
+    resolved_start, resolved_end = resolve_horizon(as_of_year, start_year, end_year)
 
+    # Resolve inflation from the cost base year, not just the window start, so
+    # carry-forward rates set before a narrow window still apply to it.
     inflation_by_year = resolve_rate_series(
-        year_parameters, "inflation_rate", resolved_start, resolved_end
+        year_parameters, "inflation_rate", min(resolved_start, base_year), resolved_end
     )
 
     rows = project_costs(
@@ -67,7 +73,7 @@ def get_costs_projection(
     return [
         YearCostRowOut(
             year=row.year,
-            is_estimate=row.is_estimate,
+            is_estimate=row.year > as_of_year,
             line_items=[
                 CostLineItemOut(
                     component_id=item.component_id,
@@ -93,30 +99,38 @@ def get_ffb_projection(
     year_parameters = csv_store.read_year_parameters(settings.data_repo_path)
     surprise_rows = csv_store.read_surprise_contributions(settings.data_repo_path)
 
-    # resolve_effective_base_year returns the same anchor year current_reserve_balance
-    # was set on (falling back to today's year only if no anchor exists yet, in which
-    # case current_reserve_balance is also None and project_ffb never anchors a balance).
+    # as_of_year / anchor_year: the year the reserve balance is stated at the
+    # start of (today's year if none is set, in which case no balance is
+    # computed). base_year: the dollars estimated_cost is denominated in.
     _, current_reserve_balance = resolve_base_year(year_parameters)
-    base_year = resolve_effective_base_year(year_parameters)
-    resolved_start, resolved_end = resolve_horizon(base_year, start_year, end_year)
+    anchor_year = resolve_effective_base_year(year_parameters)
+    base_year = resolve_cost_base_year(
+        year_parameters, csv_store.read_study_settings(settings.data_repo_path)
+    )
+    resolved_start, resolved_end = resolve_horizon(anchor_year, start_year, end_year)
+
+    # Rates and costs are resolved from the earliest year anything depends on
+    # (the balance rolls forward from the anchor; inflation compounds from the
+    # cost base year) and the result is trimmed to the requested window.
+    span_start = min(resolved_start, anchor_year, base_year)
 
     inflation_by_year = resolve_rate_series(
-        year_parameters, "inflation_rate", resolved_start, resolved_end
+        year_parameters, "inflation_rate", span_start, resolved_end
     )
     interest_by_year = resolve_rate_series(
-        year_parameters, "interest_rate", resolved_start, resolved_end
+        year_parameters, "interest_rate", span_start, resolved_end
     )
     contribution_by_year = resolve_contribution_series(
-        year_parameters, resolved_start, resolved_end
+        year_parameters, span_start, resolved_end
     )
     surprise_by_year = aggregate_surprise_by_year(
-        surprise_rows, resolved_start, resolved_end
+        surprise_rows, span_start, resolved_end
     )
 
     actual_costs = csv_store.read_actual_costs(settings.data_repo_path)
     cost_rows = project_costs(
         components,
-        resolved_start,
+        span_start,
         resolved_end,
         base_year,
         inflation_by_year,
@@ -136,6 +150,8 @@ def get_ffb_projection(
         surprise_by_year,
         costs_by_year,
         actual_costs,
+        anchor_year=anchor_year,
+        as_of_year=anchor_year,
     )
     return [
         YearFFBRowOut(

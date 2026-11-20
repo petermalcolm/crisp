@@ -4,7 +4,7 @@ from app.core.calc.actuals import (
     plan_recording,
     schedule_revert_year,
 )
-from app.core.calc.costs import Component, component_age_in_year, project_costs
+from app.core.calc.costs import Component, component_age_at_start_of_year, project_costs
 from app.core.calc.ffb import project_ffb
 from app.models import ActualCost
 
@@ -64,16 +64,18 @@ def test_actual_for_unknown_component_is_ignored():
 
 
 def test_age_counts_from_latest_actual_when_schedule_is_ahead():
+    moved = Component("roof", "Roof", 100_000.0, 2041, 15)  # actual in 2026
+    assert component_age_at_start_of_year(moved, 2030, [2026]) == 4
+    assert component_age_at_start_of_year(moved, 2041, [2026]) == 15  # due again
+    assert component_age_at_start_of_year(moved, 2042, [2026]) == 1  # schedule resumes
+
+
+def test_age_before_an_actual_still_counts_wear_toward_it():
+    # initial_year was pushed to 2041 by recording a 2026 actual; before 2026
+    # the component was still aging toward that actual.
     moved = Component("roof", "Roof", 100_000.0, 2041, 15)
-    assert component_age_in_year(moved, 2030) is None  # no actuals known
-    assert component_age_in_year(moved, 2030, [2026]) == 4
-    assert component_age_in_year(moved, 2041, [2026]) == 0  # schedule resumes
-
-
-def test_age_unchanged_without_actuals():
-    assert component_age_in_year(ROOF, 2030) == 4
-    assert component_age_in_year(ROOF, 2041) == 0
-    assert component_age_in_year(ROOF, 2025) is None
+    assert component_age_at_start_of_year(moved, 2025, [2026]) == 14
+    assert component_age_at_start_of_year(moved, 2026, [2026]) == 15
 
 
 def test_ffb_target_keeps_aging_after_schedule_moves_past_an_actual():
@@ -85,7 +87,7 @@ def test_ffb_target_keeps_aging_after_schedule_moves_past_an_actual():
         actual_costs=[ActualCost("roof", 2026, 150_000.0)],
     )
     by_year = {r.year: r for r in rows}
-    assert by_year[2026].ffb_target == 0.0
+    assert by_year[2026].ffb_target == 150_000.0  # due this year: fully aged
     assert by_year[2028].ffb_target == 150_000.0 * 2 / 10
     assert by_year[2030].ffb_target == 150_000.0 * 4 / 10
 

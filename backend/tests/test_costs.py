@@ -1,6 +1,6 @@
 from app.core.calc.costs import (
     Component,
-    component_age_in_year,
+    component_age_at_start_of_year,
     get_component_occurrences,
     inflate_cost,
     project_costs,
@@ -24,12 +24,21 @@ def test_occurrences_before_initial_year_are_excluded_and_first_hit_after_start(
     assert get_component_occurrences(late_start, 2026, 2045) == [2030, 2040]
 
 
-def test_age_resets_to_zero_in_replacement_year():
-    assert component_age_in_year(ROOF, 2026) == 0
-    assert component_age_in_year(ROOF, 2030) == 4
-    assert component_age_in_year(ROOF, 2040) == 14
-    assert component_age_in_year(ROOF, 2041) == 0
-    assert component_age_in_year(ROOF, 2025) is None
+def test_age_at_start_of_year_counts_wear_before_first_replacement():
+    # Due in 2026 with a 15-year life: at the start of 2026 it is fully aged,
+    # and each earlier year is one younger (useful life minus remaining life).
+    assert component_age_at_start_of_year(ROOF, 2026) == 15
+    assert component_age_at_start_of_year(ROOF, 2025) == 14
+    assert component_age_at_start_of_year(ROOF, 2024) == 13
+    assert component_age_at_start_of_year(ROOF, 2011) == 0
+    assert component_age_at_start_of_year(ROOF, 1990) == 0  # clamped
+
+
+def test_age_at_start_of_year_resets_after_replacement_year():
+    assert component_age_at_start_of_year(ROOF, 2027) == 1  # replaced during 2026
+    assert component_age_at_start_of_year(ROOF, 2030) == 4
+    assert component_age_at_start_of_year(ROOF, 2041) == 15  # due again
+    assert component_age_at_start_of_year(ROOF, 2042) == 1
 
 
 def test_inflate_cost_no_adjustment_at_or_before_base_year():
