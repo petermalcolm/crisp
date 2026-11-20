@@ -71,6 +71,34 @@ processes are already registered in `.claude/launch.json` as `frontend` and
   against the theoretical FFB target — until one is set, the FFB view shows
   targets only.
 
+## Recording actual costs
+
+Every line on the **Costs** tab carries a pill: a green **A** means an actual
+cost has been recorded for it, a gold **Est** means it's still an estimate.
+On a forecast branch, **Est** is a link that opens a dialog to enter what was
+really spent (on `main` the pills are read-only, like everything else).
+
+Actuals live in `version-controlled-data/actual_costs.csv`
+(`component_id,year,cost,comment`; created the first time one is recorded).
+A recorded actual **replaces** that line's estimate in the year total and in
+the Fully Funded Balance's costs and balance.
+
+Recording an actual for year Y of a component with life L also:
+
+- moves the component's `initial_year` to **Y + L**, and
+- asks whether to update the recurring cost: **Yes** (use the actual, carried
+  forward with inflation), **No, keep estimate**, or **Other** (a new estimate
+  by hand).
+
+If earlier scheduled occurrences never got an actual (e.g. a short-lived item
+you're only now recording), the dialog lists them and backfills each with its
+estimate on save. Cancel to record those years by hand first.
+
+Click a green **A** to correct the amount/comment or remove it. Removing an
+actual puts the component's schedule back where it was when that is
+unambiguous; it never overrides a schedule you pushed out by hand, and it
+doesn't undo a recurring-cost change.
+
 ## Bulk-importing components from a spreadsheet
 
 For a one-time load of many components (e.g. migrating an existing reserve

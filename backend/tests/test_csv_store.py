@@ -103,3 +103,29 @@ def test_reading_header_only_csvs_returns_empty_lists(tmp_path):
     assert csv_store.read_components(repo) == []
     assert csv_store.read_year_parameters(repo) == []
     assert csv_store.read_surprise_contributions(repo) == []
+
+
+def test_actual_costs_round_trip_sorted_and_blank_comment_is_none(tmp_path):
+    from app.models import ActualCost
+
+    csv_store.write_actual_costs(
+        tmp_path,
+        [
+            ActualCost("b-comp", 2025, 12.5, "with note"),
+            ActualCost("a-comp", 2030, 99.0),
+            ActualCost("a-comp", 2020, 1.0, "Backfilled, from estimate"),
+        ],
+    )
+    loaded = csv_store.read_actual_costs(tmp_path)
+    assert [(a.component_id, a.year) for a in loaded] == [
+        ("a-comp", 2020), ("a-comp", 2030), ("b-comp", 2025)
+    ]
+    assert loaded[0].comment == "Backfilled, from estimate"  # comma survives quoting
+    assert loaded[1].comment is None
+    assert (tmp_path / "actual_costs.csv").read_text().splitlines()[0] == (
+        "component_id,year,cost,comment"
+    )
+
+
+def test_read_actual_costs_missing_file_returns_empty_list(tmp_path):
+    assert csv_store.read_actual_costs(tmp_path) == []

@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 from app.core.calc.costs import Component, component_age_in_year, inflate_cost
+from app.models import ActualCost
 
 
 @dataclass(frozen=True)
@@ -18,16 +19,22 @@ def _ffb_target_for_year(
     year: int,
     base_year: int,
     inflation_by_year: dict[int, float],
+    actual_years_by_component: dict[str, list[int]],
 ) -> float:
     target = 0.0
     for component in components:
-        age = component_age_in_year(component, year)
+        age = component_age_in_year(
+            component, year, actual_years_by_component.get(component.id, ())
+        )
         if age is None:
             continue
         inflated_cost = inflate_cost(
             component.estimated_cost, base_year, year, inflation_by_year
         )
-        target += (age / component.expected_life_years) * inflated_cost
+        # Capped at fully funded: a schedule pushed out past the component's
+        # life shouldn't call for more than 100% of its replacement cost.
+        funded_fraction = min(age / component.expected_life_years, 1.0)
+        target += funded_fraction * inflated_cost
     return target
 
 
@@ -42,6 +49,7 @@ def project_ffb(
     contribution_by_year: dict[int, float],
     surprise_by_year: dict[int, float],
     costs_by_year: dict[int, float],
+    actual_costs: list[ActualCost] | None = None,
 ) -> list[YearFFBRow]:
     """Project FFB target and actual-balance rollforward for each year.
 
@@ -51,12 +59,20 @@ def project_ffb(
     [start_year, end_year], or every year when current_reserve_balance
     hasn't been set at all, report actual_balance=None.
     """
+    actual_years_by_component: dict[str, list[int]] = {}
+    for actual in actual_costs or []:
+        actual_years_by_component.setdefault(actual.component_id, []).append(
+            actual.year
+        )
+
     rows = []
     balance: float | None = None
     anchored = False
 
     for year in range(start_year, end_year + 1):
-        target = _ffb_target_for_year(components, year, base_year, inflation_by_year)
+        target = _ffb_target_for_year(
+            components, year, base_year, inflation_by_year, actual_years_by_component
+        )
 
         if year == base_year and current_reserve_balance is not None:
             balance = current_reserve_balance

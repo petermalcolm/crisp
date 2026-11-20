@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 
+from app.models import ActualCost
+
 
 @dataclass(frozen=True)
 class Component:
@@ -17,6 +19,8 @@ class CostLineItem:
     component_id: str
     component_name: str
     cost: float
+    is_actual: bool = False
+    comment: str | None = None
 
 
 @dataclass(frozen=True)
@@ -44,12 +48,26 @@ def get_component_occurrences(
     return occurrences
 
 
-def component_age_in_year(component: Component, year: int) -> int | None:
-    """Age of the component in the given year, resetting to 0 in a
-    replacement year. None if the year precedes the component's initial_year."""
-    if year < component.initial_year:
+def is_scheduled_occurrence(component: Component, year: int) -> bool:
+    return (
+        year >= component.initial_year
+        and (year - component.initial_year) % component.expected_life_years == 0
+    )
+
+
+def component_age_in_year(
+    component: Component, year: int, actual_years: tuple[int, ...] | list[int] = ()
+) -> int | None:
+    """Age of the component in the given year, counted from its most recent
+    replacement: either the latest scheduled occurrence or the latest recorded
+    actual, whichever is later. None if neither has happened yet."""
+    replacements = [y for y in actual_years if y <= year]
+    if year >= component.initial_year:
+        offset = (year - component.initial_year) % component.expected_life_years
+        replacements.append(year - offset)
+    if not replacements:
         return None
-    return (year - component.initial_year) % component.expected_life_years
+    return year - max(replacements)
 
 
 def inflate_cost(
@@ -74,18 +92,39 @@ def project_costs(
     end_year: int,
     base_year: int,
     inflation_by_year: dict[int, float],
+    actual_costs: list[ActualCost] | None = None,
 ) -> list[YearCostRow]:
+    """Per-year cost lines. A recorded actual replaces the inflated estimate
+    for its component-year, and an actual in a year with no scheduled
+    occurrence still shows up (the schedule moves on after an actual is
+    recorded, but the spend itself must stay visible)."""
+    actual_by_key = {(a.component_id, a.year): a for a in actual_costs or []}
     line_items_by_year: dict[int, list[CostLineItem]] = {
         year: [] for year in range(start_year, end_year + 1)
     }
     for component in components:
-        for year in get_component_occurrences(component, start_year, end_year):
-            inflated = inflate_cost(
-                component.estimated_cost, base_year, year, inflation_by_year
-            )
-            line_items_by_year[year].append(
-                CostLineItem(component.id, component.name, inflated)
-            )
+        years = set(get_component_occurrences(component, start_year, end_year))
+        years.update(
+            a.year
+            for (cid, _), a in actual_by_key.items()
+            if cid == component.id and start_year <= a.year <= end_year
+        )
+        for year in sorted(years):
+            actual = actual_by_key.get((component.id, year))
+            if actual is not None:
+                item = CostLineItem(
+                    component.id,
+                    component.name,
+                    actual.cost,
+                    is_actual=True,
+                    comment=actual.comment,
+                )
+            else:
+                inflated = inflate_cost(
+                    component.estimated_cost, base_year, year, inflation_by_year
+                )
+                item = CostLineItem(component.id, component.name, inflated)
+            line_items_by_year[year].append(item)
 
     rows = []
     for year in range(start_year, end_year + 1):

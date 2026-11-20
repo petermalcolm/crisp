@@ -22,6 +22,14 @@ class SurpriseContribution:
 
 
 @dataclass(frozen=True)
+class ActualCost:
+    component_id: str
+    year: int
+    cost: float
+    comment: str | None = None
+
+
+@dataclass(frozen=True)
 class Category:
     code: str
     name: str

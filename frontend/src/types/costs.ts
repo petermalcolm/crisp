@@ -2,6 +2,8 @@ export interface CostLineItem {
   component_id: string;
   component_name: string;
   cost: number;
+  is_actual: boolean;
+  comment: string | null;
 }
 
 export interface YearCostRow {

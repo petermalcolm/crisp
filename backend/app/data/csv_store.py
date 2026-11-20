@@ -4,7 +4,7 @@ from pathlib import Path
 import pandas as pd
 
 from app.core.calc.costs import Component
-from app.models import Category, SurpriseContribution, YearParameterRow
+from app.models import ActualCost, Category, SurpriseContribution, YearParameterRow
 
 COMPONENTS_COLUMNS = [
     "id",
@@ -16,6 +16,7 @@ COMPONENTS_COLUMNS = [
     "notes",
 ]
 CATEGORIES_COLUMNS = ["code", "name"]
+ACTUAL_COSTS_COLUMNS = ["component_id", "year", "cost", "comment"]
 YEAR_PARAMETERS_COLUMNS = [
     "year",
     "num_contributors",
@@ -47,6 +48,10 @@ def _surprise_contributions_path(repo_path: Path) -> Path:
 
 def _categories_path(repo_path: Path) -> Path:
     return repo_path / "categories.csv"
+
+
+def _actual_costs_path(repo_path: Path) -> Path:
+    return repo_path / "actual_costs.csv"
 
 
 def _opt_float(value) -> float | None:
@@ -189,3 +194,36 @@ def write_categories(repo_path: Path, categories: list[Category]) -> None:
         columns=CATEGORIES_COLUMNS,
     )
     df.to_csv(_categories_path(repo_path), index=False)
+
+
+def read_actual_costs(repo_path: Path) -> list[ActualCost]:
+    path = _actual_costs_path(repo_path)
+    if not path.exists():
+        return []
+    df = pd.read_csv(path)
+    return [
+        ActualCost(
+            component_id=str(row["component_id"]),
+            year=int(row["year"]),
+            cost=float(row["cost"]),
+            comment=_opt_str(row.get("comment")),
+        )
+        for _, row in df.iterrows()
+    ]
+
+
+def write_actual_costs(repo_path: Path, rows: list[ActualCost]) -> None:
+    ordered = sorted(rows, key=lambda r: (r.component_id, r.year))
+    df = pd.DataFrame(
+        [
+            {
+                "component_id": r.component_id,
+                "year": r.year,
+                "cost": f"{r.cost:.2f}",
+                "comment": r.comment or "",
+            }
+            for r in ordered
+        ],
+        columns=ACTUAL_COSTS_COLUMNS,
+    )
+    df.to_csv(_actual_costs_path(repo_path), index=False)

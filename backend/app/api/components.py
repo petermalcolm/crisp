@@ -114,4 +114,10 @@ def delete_component(component_id: str) -> None:
     if len(remaining) == len(components):
         raise HTTPException(status_code=404, detail="Component not found")
     csv_store.write_components(settings.data_repo_path, remaining)
+    # Drop the component's recorded actuals too, so none are left pointing at
+    # a component that no longer exists.
+    actuals = csv_store.read_actual_costs(settings.data_repo_path)
+    kept = [a for a in actuals if a.component_id != component_id]
+    if len(kept) != len(actuals):
+        csv_store.write_actual_costs(settings.data_repo_path, kept)
     autosave_service.notify_change()

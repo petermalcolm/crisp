@@ -21,6 +21,8 @@ class CostLineItemOut(BaseModel):
     component_id: str
     component_name: str
     cost: float
+    is_actual: bool
+    comment: str | None
 
 
 class YearCostRowOut(BaseModel):
@@ -55,7 +57,12 @@ def get_costs_projection(
     )
 
     rows = project_costs(
-        components, resolved_start, resolved_end, base_year, inflation_by_year
+        components,
+        resolved_start,
+        resolved_end,
+        base_year,
+        inflation_by_year,
+        csv_store.read_actual_costs(settings.data_repo_path),
     )
     return [
         YearCostRowOut(
@@ -66,6 +73,8 @@ def get_costs_projection(
                     component_id=item.component_id,
                     component_name=item.component_name,
                     cost=item.cost,
+                    is_actual=item.is_actual,
+                    comment=item.comment,
                 )
                 for item in row.line_items
             ],
@@ -104,8 +113,14 @@ def get_ffb_projection(
         surprise_rows, resolved_start, resolved_end
     )
 
+    actual_costs = csv_store.read_actual_costs(settings.data_repo_path)
     cost_rows = project_costs(
-        components, resolved_start, resolved_end, base_year, inflation_by_year
+        components,
+        resolved_start,
+        resolved_end,
+        base_year,
+        inflation_by_year,
+        actual_costs,
     )
     costs_by_year = {row.year: row.total for row in cost_rows}
 
@@ -120,6 +135,7 @@ def get_ffb_projection(
         contribution_by_year,
         surprise_by_year,
         costs_by_year,
+        actual_costs,
     )
     return [
         YearFFBRowOut(
