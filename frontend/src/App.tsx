@@ -4,6 +4,7 @@ import { ComponentsListPage } from "./routes/ComponentsListPage";
 import { CostsPage } from "./routes/CostsPage";
 import { ParametersPage } from "./routes/ParametersPage";
 import { FFBPage } from "./routes/FFBPage";
+import { ReportPage } from "./routes/ReportPage";
 
 function App() {
   return (
@@ -14,6 +15,7 @@ function App() {
         <Route path="/costs" element={<CostsPage />} />
         <Route path="/parameters" element={<ParametersPage />} />
         <Route path="/ffb" element={<FFBPage />} />
+        <Route path="/report" element={<ReportPage />} />
       </Route>
     </Routes>
   );

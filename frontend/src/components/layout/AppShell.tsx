@@ -7,6 +7,7 @@ const navItems = [
   { to: "/costs", label: "Costs" },
   { to: "/parameters", label: "Income/Expenses" },
   { to: "/ffb", label: "Fully Funded Balance" },
+  { to: "/report", label: "Report" },
 ];
 
 const linkClasses = ({ isActive }: { isActive: boolean }) =>
@@ -19,7 +20,7 @@ const linkClasses = ({ isActive }: { isActive: boolean }) =>
 export function AppShell() {
   return (
     <div className="flex min-h-svh flex-col">
-      <header className="border-b border-slate-200 dark:border-slate-800">
+      <header className="border-b border-slate-200 dark:border-slate-800 print:hidden">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
           <div className="flex items-center gap-6">
             <span className="text-lg font-semibold tracking-tight">
@@ -39,7 +40,7 @@ export function AppShell() {
           </div>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 print:max-w-none print:p-0">
         <Outlet />
       </main>
     </div>

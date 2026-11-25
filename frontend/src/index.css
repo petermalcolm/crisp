@@ -14,3 +14,39 @@ body {
 #root {
   min-height: 100svh;
 }
+
+/* Lender report: print layout */
+@page {
+  size: letter;
+  margin: 0.6in 0.6in 0.7in;
+  @bottom-right {
+    content: "Page " counter(page) " of " counter(pages);
+    width: 20%;
+    text-align: right;
+    font-size: 8pt;
+    color: #6b7280;
+  }
+}
+
+@media print {
+  html,
+  body {
+    background: #fff !important;
+    color: #111827 !important;
+  }
+  .report-page-break {
+    break-before: page;
+  }
+  .report-keep-together,
+  .report-paper tr,
+  .report-paper figure {
+    break-inside: avoid;
+  }
+  .report-paper thead {
+    display: table-header-group;
+  }
+  .report-paper h2,
+  .report-paper h3 {
+    break-after: avoid;
+  }
+}

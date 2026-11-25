@@ -35,6 +35,12 @@ def current_branch(repo_path: Path) -> str:
     return result.stdout.strip()
 
 
+def head_commit(repo_path: Path) -> str | None:
+    """Short hash of HEAD, or None for a repo with no commits yet."""
+    result = _run(repo_path, "rev-parse", "--short", "HEAD")
+    return result.stdout.strip() if result.returncode == 0 else None
+
+
 def list_branches(repo_path: Path) -> list[str]:
     result = _run(repo_path, "branch", "--format=%(refname:short)")
     if result.returncode != 0:

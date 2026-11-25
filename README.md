@@ -99,6 +99,29 @@ actual puts the component's schedule back where it was when that is
 unambiguous; it never overrides a schedule you pushed out by hand, and it
 doesn't undo a recurring-cost change.
 
+## Lender report
+
+The **Report** tab builds a printable report for mortgage lenders: reserve fund
+at a glance, a schedule of maintenance and projects by year, a 30-year
+projection (min/max balance, contribution and percent funded, average percent
+funded, chart and year-by-year table), assumptions, and a component inventory.
+Internal component notes and actual-cost comments are never included.
+
+- **Settings** (association name/address, prepared-by, study reference, basis
+  statement, financial disclosures, the adopted operating and reserve budget,
+  and the first/last year) are edited in the *Report settings* panel and saved
+  as `version-controlled-data/report_settings.json`. Like any edit they need a
+  forecast branch, then merge to `main`.
+- **Generate lender copies from `main`.** Reports from a forecast branch are
+  stamped DRAFT. Every page footer carries the generation date, branch and data
+  commit; warnings above the report flag uncommitted data, a missing balance, a
+  projected shortfall, or a budget that disagrees with the model's contribution.
+- **Save as PDF:** *Print / Save as PDF*, choose "Save as PDF", and turn off
+  "Headers and footers" in the print dialog.
+- Balances and the Fully Funded Balance are stated on January 1. Component
+  costs are denominated in the **Cost base year** (Income/Expenses page) and
+  inflated forward.
+
 ## Bulk-importing components from a spreadsheet
 
 For a one-time load of many components (e.g. migrating an existing reserve

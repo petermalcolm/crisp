@@ -3,17 +3,14 @@ from pydantic import BaseModel
 
 from app.config import settings
 from app.core.calc.costs import project_costs
-from app.core.calc.ffb import project_ffb
 from app.core.calc.parameters import (
-    aggregate_surprise_by_year,
-    resolve_base_year,
-    resolve_contribution_series,
     resolve_cost_base_year,
     resolve_effective_base_year,
     resolve_horizon,
     resolve_rate_series,
 )
 from app.data import csv_store
+from app.services.projection import compute_ffb_projection
 
 router = APIRouter(prefix="/api/projections", tags=["projections"])
 
@@ -95,64 +92,7 @@ def get_ffb_projection(
     start_year: int | None = Query(default=None),
     end_year: int | None = Query(default=None),
 ) -> list[YearFFBRowOut]:
-    components = csv_store.read_components(settings.data_repo_path)
-    year_parameters = csv_store.read_year_parameters(settings.data_repo_path)
-    surprise_rows = csv_store.read_surprise_contributions(settings.data_repo_path)
-
-    # as_of_year / anchor_year: the year the reserve balance is stated at the
-    # start of (today's year if none is set, in which case no balance is
-    # computed). base_year: the dollars estimated_cost is denominated in.
-    _, current_reserve_balance = resolve_base_year(year_parameters)
-    anchor_year = resolve_effective_base_year(year_parameters)
-    base_year = resolve_cost_base_year(
-        year_parameters, csv_store.read_study_settings(settings.data_repo_path)
-    )
-    resolved_start, resolved_end = resolve_horizon(anchor_year, start_year, end_year)
-
-    # Rates and costs are resolved from the earliest year anything depends on
-    # (the balance rolls forward from the anchor; inflation compounds from the
-    # cost base year) and the result is trimmed to the requested window.
-    span_start = min(resolved_start, anchor_year, base_year)
-
-    inflation_by_year = resolve_rate_series(
-        year_parameters, "inflation_rate", span_start, resolved_end
-    )
-    interest_by_year = resolve_rate_series(
-        year_parameters, "interest_rate", span_start, resolved_end
-    )
-    contribution_by_year = resolve_contribution_series(
-        year_parameters, span_start, resolved_end
-    )
-    surprise_by_year = aggregate_surprise_by_year(
-        surprise_rows, span_start, resolved_end
-    )
-
-    actual_costs = csv_store.read_actual_costs(settings.data_repo_path)
-    cost_rows = project_costs(
-        components,
-        span_start,
-        resolved_end,
-        base_year,
-        inflation_by_year,
-        actual_costs,
-    )
-    costs_by_year = {row.year: row.total for row in cost_rows}
-
-    rows = project_ffb(
-        components,
-        resolved_start,
-        resolved_end,
-        base_year,
-        current_reserve_balance,
-        inflation_by_year,
-        interest_by_year,
-        contribution_by_year,
-        surprise_by_year,
-        costs_by_year,
-        actual_costs,
-        anchor_year=anchor_year,
-        as_of_year=anchor_year,
-    )
+    computation = compute_ffb_projection(start_year, end_year)
     return [
         YearFFBRowOut(
             year=row.year,
@@ -162,5 +102,5 @@ def get_ffb_projection(
             actual_balance=row.actual_balance,
             percent_funded=row.percent_funded,
         )
-        for row in rows
+        for row in computation.rows
     ]

@@ -10,6 +10,7 @@ from app.api import (
     components,
     parameters,
     projections,
+    report,
 )
 from app.config import settings
 from app.data import git_ops
@@ -42,6 +43,7 @@ app.include_router(parameters.router)
 app.include_router(branches.router)
 app.include_router(categories.router)
 app.include_router(actual_costs.router)
+app.include_router(report.router)
 
 
 @app.get("/api/health")
